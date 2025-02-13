@@ -8,22 +8,49 @@ const URLShortener = () => {
   const [originalUrl, setOriginalUrl] = useState('');
   const [shortUrl, setShortUrl] = useState('');
   const [error, setError] = useState('');
+  const [isLoading, setIsLoading] = useState(false);
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setShortUrl('');
+    setIsLoading(true);
     
     if (!originalUrl) {
       setError('請輸入網址');
+      setIsLoading(false);
       return;
     }
 
     try {
-      // 這裡稍後會加入與後端的連接
-      setShortUrl('https://short.url/abc123');
+      const response = await fetch('https://url-shortener-api.您的worker網域.workers.dev', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ url: originalUrl })
+      });
+
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || '發生錯誤，請稍後再試');
+      }
+
+      setShortUrl(data.shortUrl);
     } catch (err) {
-      setError('發生錯誤，請稍後再試');
+      setError(err.message);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCopy = async () => {
+    try {
+      await navigator.clipboard.writeText(shortUrl);
+      alert('已複製到剪貼簿！');
+    } catch (err) {
+      alert('複製失敗，請手動複製');
     }
   };
 
@@ -42,10 +69,15 @@ const URLShortener = () => {
                 value={originalUrl}
                 onChange={(e) => setOriginalUrl(e.target.value)}
                 className="w-full"
+                disabled={isLoading}
               />
             </div>
-            <Button type="submit" className="w-full bg-blue-600 hover:bg-blue-700 text-white">
-              縮短網址
+            <Button 
+              type="submit" 
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white"
+              disabled={isLoading}
+            >
+              {isLoading ? '處理中...' : '縮短網址'}
             </Button>
             
             {error && (
@@ -57,14 +89,23 @@ const URLShortener = () => {
             {shortUrl && (
               <div className="mt-4 p-4 bg-green-50 rounded-md">
                 <p className="text-sm font-medium text-green-800">縮短後的網址：</p>
-                <a 
-                  href={shortUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-blue-600 hover:underline break-all"
-                >
-                  {shortUrl}
-                </a>
+                <div className="flex items-center gap-2">
+                  <a 
+                    href={shortUrl}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="text-blue-600 hover:underline break-all"
+                  >
+                    {shortUrl}
+                  </a>
+                  <Button 
+                    type="button"
+                    onClick={handleCopy}
+                    className="ml-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700"
+                  >
+                    複製
+                  </Button>
+                </div>
               </div>
             )}
           </form>
