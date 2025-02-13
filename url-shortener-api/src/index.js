@@ -1,13 +1,14 @@
-export default {
-	async fetch(request, env) {
-	  // 設置 CORS 標頭，允許前端網站訪問
-	  const corsHeaders = {
-		'Access-Control-Allow-Origin': '*',
-		'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-		'Access-Control-Allow-Headers': 'Content-Type',
-	  };
+// 定義 CORS 標頭
+const corsHeaders = {
+	'Access-Control-Allow-Origin': '*',
+	'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+	'Access-Control-Allow-Headers': 'Content-Type',
+	'Access-Control-Max-Age': '86400',
+  };
   
-	  // 處理預檢請求
+  export default {
+	async fetch(request, env) {
+	  // 處理 OPTIONS 請求（預檢請求）
 	  if (request.method === 'OPTIONS') {
 		return new Response(null, {
 		  headers: corsHeaders
@@ -65,7 +66,10 @@ export default {
 		
 		// 首頁或其他請求
 		return new Response('URL Shortener API', { 
-		  headers: corsHeaders 
+		  headers: {
+			'Content-Type': 'text/plain',
+			...corsHeaders
+		  }
 		});
 		
 	  } catch (err) {

@@ -23,7 +23,8 @@ const URLShortener = () => {
     }
 
     try {
-      const response = await fetch('https://url-shortener-api.您的worker網域.workers.dev', {
+      console.log('Sending request to API...');
+      const response = await fetch('https://url-shortener-api.cming2ring.workers.dev', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -31,15 +32,23 @@ const URLShortener = () => {
         body: JSON.stringify({ url: originalUrl })
       });
 
-      const data = await response.json();
+      console.log('Response status:', response.status);
       
       if (!response.ok) {
-        throw new Error(data.error || '發生錯誤，請稍後再試');
+        throw new Error(`HTTP error! status: ${response.status}`);
+      }
+
+      const data = await response.json();
+      console.log('Response data:', data);
+      
+      if (data.error) {
+        throw new Error(data.error);
       }
 
       setShortUrl(data.shortUrl);
     } catch (err) {
-      setError(err.message);
+      console.error('Fetch error:', err);
+      setError(err.message || '無法連接到服務器，請稍後再試');
     } finally {
       setIsLoading(false);
     }
@@ -50,6 +59,7 @@ const URLShortener = () => {
       await navigator.clipboard.writeText(shortUrl);
       alert('已複製到剪貼簿！');
     } catch (err) {
+      console.error('Copy error:', err);
       alert('複製失敗，請手動複製');
     }
   };
