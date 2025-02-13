@@ -7,6 +7,12 @@
   "name": "url-shortener-api",
   "main": "src/index.js",
   "compatibility_date": "2025-02-04",
+  "kv_namespaces": [
+    {
+      "binding": "URL_STORE",
+      "id": "eda34974057b45ec8e97db34f44e294e"
+    }
+  ],
   "observability": {
     "enabled": true
   }

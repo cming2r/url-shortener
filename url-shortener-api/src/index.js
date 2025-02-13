@@ -1,14 +1,13 @@
-// 定義 CORS 標頭
-const corsHeaders = {
-	'Access-Control-Allow-Origin': '*',
-	'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
-	'Access-Control-Allow-Headers': 'Content-Type',
-	'Access-Control-Max-Age': '86400',
-  };
-  
-  export default {
+export default {
 	async fetch(request, env) {
-	  // 處理 OPTIONS 請求（預檢請求）
+	  // 設置 CORS 標頭
+	  const corsHeaders = {
+		'Access-Control-Allow-Origin': '*',
+		'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
+		'Access-Control-Allow-Headers': 'Content-Type',
+	  };
+  
+	  // 處理預檢請求
 	  if (request.method === 'OPTIONS') {
 		return new Response(null, {
 		  headers: corsHeaders
@@ -20,7 +19,6 @@ const corsHeaders = {
 		
 		// POST 請求 - 建立短網址
 		if (request.method === 'POST') {
-		  // 解析請求內容
 		  const { url: longUrl } = await request.json();
 		  
 		  if (!longUrl) {
@@ -36,8 +34,11 @@ const corsHeaders = {
 			);
 		  }
   
-		  // 生成 6 位數的短代碼
+		  // 生成短代碼
 		  const shortCode = Math.random().toString(36).substring(2, 8);
+		  
+		  // 儲存到 KV
+		  await env.URL_STORE.put(shortCode, longUrl);
 		  
 		  // 回傳短網址
 		  return new Response(
@@ -54,22 +55,26 @@ const corsHeaders = {
 		  );
 		}
 		
-		// GET 請求 - 重定向到原始網址（目前返回模擬資料）
+		// GET 請求 - 重定向到原始網址
 		if (request.method === 'GET' && url.pathname.length > 1) {
 		  const shortCode = url.pathname.slice(1);
 		  
-		  // 模擬找到原始網址（之後會改用 KV 儲存）
-		  const mockOriginalUrl = 'https://example.com';
+		  // 從 KV 中獲取原始網址
+		  const originalUrl = await env.URL_STORE.get(shortCode);
 		  
-		  return Response.redirect(mockOriginalUrl, 302);
+		  if (!originalUrl) {
+			return new Response('Short URL not found', { 
+			  status: 404,
+			  headers: corsHeaders 
+			});
+		  }
+		  
+		  return Response.redirect(originalUrl, 302);
 		}
 		
 		// 首頁或其他請求
 		return new Response('URL Shortener API', { 
-		  headers: {
-			'Content-Type': 'text/plain',
-			...corsHeaders
-		  }
+		  headers: corsHeaders 
 		});
 		
 	  } catch (err) {
