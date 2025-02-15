@@ -40,6 +40,8 @@ const URLShortener = () => {
     }
 
     try {
+      console.log('發送的請求數據:', { url: originalUrl }); // 調試日誌
+
       const response = await fetch('https://vvrl.cc', {
         method: 'POST',
         headers: {
@@ -48,15 +50,28 @@ const URLShortener = () => {
         body: JSON.stringify({ url: originalUrl })
       });
 
+      console.log('響應狀態:', response.status); // 調試日誌
+
       // 先檢查響應是否成功
       if (!response.ok) {
-        const errorData = await response.text();
-        console.error('Error response:', errorData);
-        throw new Error(errorData || '伺服器錯誤');
+        const errorText = await response.text();
+        console.error('錯誤響應內容:', errorText);
+        throw new Error(errorText || '伺服器錯誤');
       }
 
       // 再嘗試解析 JSON
-      const data = await response.json();
+      const responseText = await response.text();
+      console.log('原始響應內容:', responseText); // 調試日誌
+
+      let data;
+      try {
+        data = JSON.parse(responseText);
+      } catch (parseError) {
+        console.error('JSON解析錯誤:', parseError);
+        throw new Error('響應數據解析失敗');
+      }
+
+      console.log('解析後的數據:', data); // 調試日誌
       
       if (!data.success) {
         throw new Error(data.error || '伺服器錯誤');

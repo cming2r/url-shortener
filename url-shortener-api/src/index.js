@@ -2,7 +2,7 @@ export default {
 	async fetch(request, env) {
 	  // 設置 CORS 標頭
 	  const corsHeaders = {
-		'Access-Control-Allow-Origin': '*',
+		'Access-Control-Allow-Origin': '*', // 對於測試，使用 * 
 		'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 		'Access-Control-Allow-Headers': 'Content-Type',
 		'Access-Control-Allow-Credentials': 'true',
