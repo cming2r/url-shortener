@@ -5,7 +5,7 @@
   "compatibility_date": "2025-02-04",
   "routes": [
     {
-      "pattern": "s.your-domain.com/*",
+      "pattern": "vvrl.cc/*",
       "custom_domain": true
     }
   ],
