@@ -48,6 +48,14 @@ const URLShortener = () => {
         body: JSON.stringify({ url: originalUrl })
       });
 
+      // 先檢查響應是否成功
+      if (!response.ok) {
+        const errorData = await response.text();
+        console.error('Error response:', errorData);
+        throw new Error(errorData || '伺服器錯誤');
+      }
+
+      // 再嘗試解析 JSON
       const data = await response.json();
       
       if (!data.success) {
@@ -56,6 +64,7 @@ const URLShortener = () => {
 
       setShortUrl(data.shortUrl);
     } catch (err) {
+      console.error('完整錯誤:', err);
       const errorMessage = err instanceof Error 
         ? err.message 
         : '無法連接到服務器，請稍後再試';
