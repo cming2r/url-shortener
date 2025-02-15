@@ -1,12 +1,11 @@
 export default {
 	async fetch(request, env) {
-	  // 擴展 CORS 配置
+	  // 設置 CORS 標頭
 	  const corsHeaders = {
 		'Access-Control-Allow-Origin': '*',
 		'Access-Control-Allow-Methods': 'GET, POST, OPTIONS',
 		'Access-Control-Allow-Headers': 'Content-Type',
 		'Access-Control-Allow-Credentials': 'true',
-		'Access-Control-Max-Age': '86400',
 	  };
 	
 	  // URL 驗證函數
@@ -117,100 +116,6 @@ export default {
 		return weekNo;
 	  }
 	
-	  // 獲取短網址統計信息的端點
-	  async function getUrlStats(shortCode, env) {
-		try {
-		  // 嘗試獲取原始記錄
-		  let urlRecordString = await env.URL_STORE.get(shortCode);
-		  
-		  // 如果找不到原始記錄，再嘗試用 stats: 前綴
-		  if (!urlRecordString) {
-			urlRecordString = await env.URL_STORE.get(`stats:${shortCode}`);
-		  }
-	
-		  if (!urlRecordString) {
-			return null;
-		  }
-	
-		  const urlRecord = JSON.parse(urlRecordString);
-	
-		  // 獲取統計信息
-		  const statsKey = `stats:${shortCode}`;
-		  const statsRecordString = await env.URL_STORE.get(statsKey);
-	
-		  const statsRecord = statsRecordString
-			? JSON.parse(statsRecordString)
-			: {
-				dailyClicks: {},
-				weeklyClicks: {},
-				monthlyClicks: {},
-				totalClicks: 0,
-				geoData: {
-				  countries: {},
-				  cities: {}
-				}
-			  };
-	
-		  // 合併基本信息和統計信息
-		  return {
-			shortCode,
-			longUrl: urlRecord.longUrl || 'N/A',
-			createdAt: urlRecord.createdAt,
-			lastAccessedAt: urlRecord.lastAccessedAt,
-			...statsRecord
-		  };
-		} catch (error) {
-		  console.error('Error getting URL stats:', error);
-		  return null;
-		}
-	  }
-	
-	  // 概率性清理超過一個月的短網址
-	  async function probabilisticCleanup(env) {
-		// 10% 的概率執行清理
-		if (Math.random() < 0.1) {
-		  const oneMonthAgo = new Date();
-		  oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1);
-	
-		  let cursor = null;
-		  let deletedCount = 0;
-	
-		  do {
-			const listResult = await env.URL_STORE.list({
-			  cursor: cursor,
-			  limit: 100
-			});
-	
-			const deletePromises = listResult.keys.map(async (key) => {
-			  // 忽略統計相關的 KV 鍵
-			  if (key.name.startsWith('stats:')) return;
-	
-			  const urlRecordString = await env.URL_STORE.get(key.name);
-	
-			  if (urlRecordString) {
-				const urlRecord = JSON.parse(urlRecordString);
-				const createdDate = new Date(urlRecord.createdAt);
-	
-				// 如果短網址超過一個月，則刪除
-				if (createdDate < oneMonthAgo) {
-				  // 刪除短網址
-				  await env.URL_STORE.delete(key.name);
-				  // 刪除對應的統計信息
-				  await env.URL_STORE.delete(`stats:${key.name}`);
-				  deletedCount++;
-				}
-			  }
-			});
-	
-			await Promise.all(deletePromises);
-	
-			cursor = listResult.cursor;
-		  } while (listResult.list_complete === false);
-	
-		  console.log(`probabilistic cleanup：刪除了 ${deletedCount} 個超過一個月的短網址`);
-		}
-	  }
-	
 	  // 處理預檢請求
 	  if (request.method === 'OPTIONS') {
 		return new Response(null, {
@@ -221,23 +126,21 @@ export default {
 	  try {
 		const url = new URL(request.url);
 	
-		// 在每次請求時進行概率性清理
-		await probabilisticCleanup(env);
-	
-		// 新增統計信息查詢端點
-		if (request.method === 'GET' && url.pathname.startsWith('/stats/')) {
-		  const shortCode = url.pathname.split('/').pop();
-	
-		  const stats = await getUrlStats(shortCode, env);
-	
-		  if (!stats) {
+		// POST 請求 - 建立短網址
+		if (request.method === 'POST') {
+		  // 安全地解析 JSON
+		  let body;
+		  try {
+			body = await request.json();
+		  } catch (error) {
+			console.error('JSON解析錯誤:', error);
 			return new Response(
 			  JSON.stringify({ 
-				success: false,
-				error: '找不到該短網址的統計信息' 
-			  }),
+				success: false, 
+				error: '無效的 JSON 數據' 
+			  }), 
 			  {
-				status: 404,
+				status: 400,
 				headers: {
 				  'Content-Type': 'application/json',
 				  ...corsHeaders
@@ -246,30 +149,14 @@ export default {
 			);
 		  }
 	
-		  return new Response(
-			JSON.stringify({
-			  success: true,
-			  ...stats
-			}),
-			{
-			  headers: {
-				'Content-Type': 'application/json',
-				...corsHeaders
-			  }
-			}
-		  );
-		}
-	
-		// POST 請求 - 建立短網址
-		if (request.method === 'POST') {
-		  const { url: longUrl } = await request.json();
-	
+		  // 檢查 URL
+		  const longUrl = body.url;
 		  if (!longUrl) {
 			return new Response(
 			  JSON.stringify({ 
-				success: false,
+				success: false, 
 				error: '請提供要縮短的網址' 
-			  }),
+			  }), 
 			  {
 				status: 400,
 				headers: {
@@ -284,9 +171,9 @@ export default {
 		  if (!isValidUrl(longUrl)) {
 			return new Response(
 			  JSON.stringify({ 
-				success: false,
+				success: false, 
 				error: '無效的 URL。請確保使用 http 或 https 協議。' 
-			  }),
+			  }), 
 			  {
 				status: 400,
 				headers: {
@@ -304,7 +191,7 @@ export default {
 		  const urlRecord = JSON.stringify({
 			longUrl,
 			createdAt: new Date().toISOString(),
-			clicks: 0,  // 初始化點擊次數
+			clicks: 0,
 			lastAccessedAt: null,
 			creator: {
 			  ip: request.headers.get('CF-Connecting-IP') || 'Unknown'
@@ -327,13 +214,16 @@ export default {
 		  await env.URL_STORE.put(shortCode, urlRecord);
 		  await env.URL_STORE.put(`stats:${shortCode}`, initialStats);
 	
+		  // 構造完整的短網址
+		  const shortUrl = `https://vvrl.cc/${shortCode}`;
+	
 		  // 回傳短網址
 		  return new Response(
-			JSON.stringify({
+			JSON.stringify({ 
 			  success: true,
-			  shortUrl: `${url.origin}/${shortCode}`,
-			  originalUrl: longUrl
-			}),
+			  shortUrl: shortUrl,
+			  originalUrl: longUrl 
+			}), 
 			{
 			  headers: {
 				'Content-Type': 'application/json',
@@ -384,12 +274,12 @@ export default {
 		});
 	
 	  } catch (err) {
-		console.error('Server error:', err);
+		console.error('伺服器錯誤:', err);
 		return new Response(
 		  JSON.stringify({ 
-			success: false,
+			success: false, 
 			error: err.message || '伺服器內部錯誤' 
-		  }),
+		  }), 
 		  {
 			status: 500,
 			headers: {
