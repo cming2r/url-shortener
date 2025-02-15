@@ -10,20 +10,36 @@ const URLShortener = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
+  // 更嚴格的 URL 驗證函數
+  const isValidUrl = (url) => {
+    try {
+      const parsedUrl = new URL(url);
+      return ['http:', 'https:'].includes(parsedUrl.protocol);
+    } catch {
+      return false;
+    }
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setShortUrl('');
     setIsLoading(true);
     
+    // 更嚴格的輸入驗證
     if (!originalUrl) {
       setError('請輸入網址');
       setIsLoading(false);
       return;
     }
 
+    if (!isValidUrl(originalUrl)) {
+      setError('請輸入有效的 HTTP 或 HTTPS 網址');
+      setIsLoading(false);
+      return;
+    }
+
     try {
-      console.log('Sending request to API...');
       const response = await fetch('https://url-shortener-api.cming2ring.workers.dev', {
         method: 'POST',
         headers: {
@@ -32,23 +48,19 @@ const URLShortener = () => {
         body: JSON.stringify({ url: originalUrl })
       });
 
-      console.log('Response status:', response.status);
+      const data = await response.json();
       
       if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-
-      const data = await response.json();
-      console.log('Response data:', data);
-      
-      if (data.error) {
-        throw new Error(data.error);
+        throw new Error(data.error || '伺服器錯誤');
       }
 
       setShortUrl(data.shortUrl);
     } catch (err) {
-      console.error('Fetch error:', err);
-      setError(err.message || '無法連接到服務器，請稍後再試');
+      const errorMessage = err instanceof Error 
+        ? err.message 
+        : '無法連接到服務器，請稍後再試';
+      
+      setError(errorMessage);
     } finally {
       setIsLoading(false);
     }
@@ -58,8 +70,7 @@ const URLShortener = () => {
     try {
       await navigator.clipboard.writeText(shortUrl);
       alert('已複製到剪貼簿！');
-    } catch (err) {
-      console.error('Copy error:', err);
+    } catch {
       alert('複製失敗，請手動複製');
     }
   };
@@ -75,11 +86,13 @@ const URLShortener = () => {
             <div>
               <Input
                 type="url"
-                placeholder="請輸入要縮短的網址"
+                placeholder="請輸入要縮短的網址 (須包含 http:// 或 https://)"
                 value={originalUrl}
-                onChange={(e) => setOriginalUrl(e.target.value)}
+                onChange={(e) => setOriginalUrl(e.target.value.trim())}
                 className="w-full"
                 disabled={isLoading}
+                required
+                pattern="https?://.*"
               />
             </div>
             <Button 
