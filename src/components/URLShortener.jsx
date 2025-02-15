@@ -103,7 +103,7 @@ const URLShortener = () => {
     <div className="h-screen w-full flex items-center justify-center bg-gray-100">
       <Card className="w-full max-w-md mx-4">
         <CardHeader>
-          <CardTitle className="text-center">網址縮短服務</CardTitle>
+          <CardTitle className="text-center">網址縮短服務1</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
