@@ -10,7 +10,7 @@ const URLShortener = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // 更嚴格的 URL 驗證函數
+  // URL 驗證函數
   const isValidUrl = (url) => {
     try {
       const parsedUrl = new URL(url);
@@ -26,7 +26,7 @@ const URLShortener = () => {
     setShortUrl('');
     setIsLoading(true);
     
-    // 更嚴格的輸入驗證
+    // 輸入驗證
     if (!originalUrl) {
       setError('請輸入網址');
       setIsLoading(false);
@@ -50,7 +50,7 @@ const URLShortener = () => {
 
       const data = await response.json();
       
-      if (!response.ok) {
+      if (!data.success) {
         throw new Error(data.error || '伺服器錯誤');
       }
 
