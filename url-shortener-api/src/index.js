@@ -7,27 +7,22 @@ export default {
 	  };
   
 	  if (request.method === 'OPTIONS') {
-		return new Response(null, {
-		  headers: corsHeaders
-		});
+		return new Response(null, { headers: corsHeaders });
 	  }
   
 	  try {
 		const url = new URL(request.url);
-		const domain = 'https://vvrl.cc';
-		
-		// GET 請求處理 - 放在最前面優先處理短網址重定向
-		if (request.method === 'GET' && url.pathname.length > 1) {
-		  const shortCode = url.pathname.slice(1);
-		  const originalUrl = await env.URL_STORE.get(shortCode);
-		  
-		  if (originalUrl) {
-			// 如果找到對應的原始網址，立即重定向
-			return Response.redirect(originalUrl, 302);
-		  }
+		console.log('Requested URL:', url.pathname); // 添加日誌
+  
+		// 如果是根路徑，不做任何處理，讓 Pages 處理
+		if (url.pathname === '/') {
+		  return new Response(null, { 
+			status: 404,
+			headers: corsHeaders 
+		  });
 		}
-		
-		// POST 請求 - 建立短網址
+  
+		// 處理 API 請求
 		if (request.method === 'POST') {
 		  const { url: longUrl } = await request.json();
 		  
@@ -49,7 +44,7 @@ export default {
 		  
 		  return new Response(
 			JSON.stringify({
-			  shortUrl: `${domain}/${shortCode}`,
+			  shortUrl: `https://vvrl.cc/${shortCode}`,
 			  originalUrl: longUrl
 			}), 
 			{
@@ -60,15 +55,27 @@ export default {
 			}
 		  );
 		}
-		
-		// 對於任何其他請求，包括根路徑，不做任何處理
-		// 這樣 Pages 可以正常處理前端頁面
-		return new Response(null, {
+  
+		// 處理短網址重定向
+		if (url.pathname.length > 1) {
+		  const shortCode = url.pathname.slice(1);
+		  console.log('Short code:', shortCode); // 添加日誌
+		  
+		  const originalUrl = await env.URL_STORE.get(shortCode);
+		  console.log('Original URL:', originalUrl); // 添加日誌
+		  
+		  if (originalUrl) {
+			return Response.redirect(originalUrl, 302);
+		  }
+		}
+  
+		// 如果沒有匹配的短碼，讓 Pages 處理
+		return new Response(null, { 
 		  status: 404,
-		  headers: corsHeaders
+		  headers: corsHeaders 
 		});
-		
 	  } catch (err) {
+		console.error('Error:', err); // 添加錯誤日誌
 		return new Response(
 		  JSON.stringify({ error: err.message }), 
 		  { 
