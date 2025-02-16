@@ -23,7 +23,7 @@ const URLShortener = () => {
     }
 
     try {
-      const response = await fetch('https://url-shortener-api.cming2ring.workers.dev', {
+      const response = await fetch('https://vvrl.cc/api', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

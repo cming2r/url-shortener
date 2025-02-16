@@ -14,14 +14,8 @@ export default {
 		const url = new URL(request.url);
 		const domain = 'https://vvrl.cc';
   
-		// 只處理 POST 和短網址請求
-		if (url.pathname === '/') {
-		  // 讓根路徑請求通過
-		  return fetch(request);
-		}
-  
 		// API 端點處理
-		if (request.method === 'POST') {
+		if (url.pathname === '/api' && request.method === 'POST') {
 		  const { url: longUrl } = await request.json();
 		  
 		  if (!longUrl) {
@@ -55,7 +49,7 @@ export default {
 		}
   
 		// 短網址重定向處理
-		if (request.method === 'GET' && url.pathname.length > 1) {
+		if (request.method === 'GET' && url.pathname.length > 1 && url.pathname !== '/api') {
 		  const shortCode = url.pathname.slice(1);
 		  const originalUrl = await env.URL_STORE.get(shortCode);
   
@@ -64,7 +58,7 @@ export default {
 		  }
 		}
   
-		// 其他請求通過
+		// 讓其他請求通過到 Pages
 		return fetch(request);
   
 	  } catch (err) {
