@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card"
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Alert, AlertDescription } from "../components/ui/alert";
-import { Toast } from "../components/ui/toast"; // 假設有這個元件
+import Toast from "../components/ui/toast";
 
 const URLShortener = () => {
   const [state, setState] = useState({
@@ -11,8 +11,16 @@ const URLShortener = () => {
     shortUrl: '',
     error: '',
     isLoading: false,
-    showToast: false
+    toast: null
   });
+
+  const showToast = (message) => {
+    setState(prev => ({ ...prev, toast: message }));
+  };
+
+  const hideToast = () => {
+    setState(prev => ({ ...prev, toast: null }));
+  };
 
   const validateUrl = (url) => {
     try {
@@ -61,10 +69,7 @@ const URLShortener = () => {
   const handleCopy = useCallback(async () => {
     try {
       await navigator.clipboard.writeText(state.shortUrl);
-      setState(prev => ({ ...prev, showToast: true }));
-      setTimeout(() => {
-        setState(prev => ({ ...prev, showToast: false }));
-      }, 3000);
+      showToast('已複製到剪貼簿！');
     } catch (err) {
       setState(prev => ({ ...prev, error: '複製失敗，請手動複製' }));
     }
@@ -83,7 +88,11 @@ const URLShortener = () => {
                 type="url"
                 placeholder="請輸入要縮短的網址"
                 value={state.originalUrl}
-                onChange={(e) => setState(prev => ({ ...prev, originalUrl: e.target.value }))}
+                onChange={(e) => setState(prev => ({ 
+                  ...prev, 
+                  originalUrl: e.target.value,
+                  error: '' // 清除錯誤訊息
+                }))}
                 className="w-full"
                 disabled={state.isLoading}
               />
@@ -94,7 +103,7 @@ const URLShortener = () => {
               disabled={state.isLoading}
             >
               {state.isLoading ? (
-                <div className="flex items-center">
+                <div className="flex items-center justify-center">
                   <span className="animate-spin mr-2">⟳</span>
                   處理中...
                 </div>
@@ -133,8 +142,12 @@ const URLShortener = () => {
         </CardContent>
       </Card>
       
-      {state.showToast && (
-        <Toast>已複製到剪貼簿！</Toast>
+      {state.toast && (
+        <Toast 
+          message={state.toast}
+          onClose={hideToast}
+          position="bottom-center"
+        />
       )}
     </div>
   );
