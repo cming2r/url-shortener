@@ -117,24 +117,35 @@ const URLShortener = () => {
             )}
             
             {state.shortUrl && (
-              <div className="mt-4 p-4 bg-green-50 rounded-md">
-                <p className="text-sm font-medium text-green-800">縮短後的網址：</p>
-                <div className="flex items-center gap-2">
-                  <a 
-                    href={state.shortUrl}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="text-blue-600 hover:underline break-all"
-                  >
-                    {state.shortUrl}
-                  </a>
-                  <Button 
-                    type="button"
-                    onClick={handleCopy}
-                    className="ml-2 px-3 py-1 bg-gray-100 hover:bg-gray-200 text-gray-700"
-                  >
-                    複製
-                  </Button>
+              <div className="mt-6 rounded-lg overflow-hidden border border-gray-200">
+                <div className="bg-blue-700 px-4 py-3">
+                  <h3 className="text-white font-medium">縮短網址已生成</h3>
+                </div>
+                <div className="p-4 bg-white">
+                  <div className="flex items-center gap-3">
+                    <div className="flex-grow">
+                      <div className="text-sm text-gray-700 mb-1">您的短網址：</div>
+                      <a 
+                        href={state.shortUrl}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="text-blue-700 hover:underline break-all text-lg"
+                      >
+                        {state.shortUrl}
+                      </a>
+                    </div>
+                    <Button 
+                      type="button"
+                      onClick={handleCopy}
+                      className="flex-shrink-0 flex items-center gap-2 px-4 py-2 bg-blue-700 hover:bg-blue-800 text-white rounded-md shadow-sm"
+                    >
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2">
+                        <rect x="9" y="9" width="13" height="13" rx="2" ry="2"></rect>
+                        <path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1"></path>
+                      </svg>
+                      複製網址
+                    </Button>
+                  </div>
                 </div>
               </div>
             )}
