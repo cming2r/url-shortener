@@ -10,8 +10,9 @@
     }
   ],
   "routes": [
-    "vvrl.cc"
+    "vvrl.cc/*"
   ],
+  "workers_dev": true,
   "observability": {
     "enabled": true
   }

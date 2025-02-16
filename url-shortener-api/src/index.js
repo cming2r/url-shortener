@@ -14,6 +14,12 @@ export default {
 		const url = new URL(request.url);
 		const domain = 'https://vvrl.cc';
   
+		// 只處理 POST 和短網址請求
+		if (url.pathname === '/') {
+		  // 讓根路徑請求通過
+		  return fetch(request);
+		}
+  
 		// API 端點處理
 		if (request.method === 'POST') {
 		  const { url: longUrl } = await request.json();
@@ -31,7 +37,6 @@ export default {
 			);
 		  }
   
-		  // 生成短網址
 		  const shortCode = Math.random().toString(36).substring(2, 8);
 		  await env.URL_STORE.put(shortCode, longUrl);
 		  
@@ -59,11 +64,8 @@ export default {
 		  }
 		}
   
-		// 如果不是短網址請求，直接返回 404，讓請求繼續到 Pages
-		return new Response(null, { 
-		  status: 404,
-		  headers: corsHeaders 
-		});
+		// 其他請求通過
+		return fetch(request);
   
 	  } catch (err) {
 		return new Response(
