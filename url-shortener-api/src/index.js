@@ -13,9 +13,10 @@ export default {
 	  }
   
 	  try {
-		// 使用固定的域名，而不是request的origin
+		const url = new URL(request.url);
 		const domain = 'https://vvrl.cc';
 		
+		// POST 請求 - 建立短網址
 		if (request.method === 'POST') {
 		  const { url: longUrl } = await request.json();
 		  
@@ -49,27 +50,28 @@ export default {
 		  );
 		}
 		
-		if (request.method === 'GET' && request.url.includes('/')) {
-		  const urlParts = request.url.split('/');
-		  const shortCode = urlParts[urlParts.length - 1];
+		// GET 請求處理
+		if (request.method === 'GET') {
+		  // 如果是根路徑，重定向到前端頁面
+		  if (url.pathname === '/') {
+			return Response.redirect('https://url-shortener-279.pages.dev', 302);
+		  }
 		  
-		  if (shortCode) {
+		  // 如果有短碼，嘗試重定向到原始 URL
+		  if (url.pathname.length > 1) {
+			const shortCode = url.pathname.slice(1);
 			const originalUrl = await env.URL_STORE.get(shortCode);
 			
 			if (!originalUrl) {
-			  return new Response('Short URL not found', { 
-				status: 404,
-				headers: corsHeaders 
-			  });
+			  return Response.redirect('https://url-shortener-279.pages.dev', 302);
 			}
 			
 			return Response.redirect(originalUrl, 302);
 		  }
 		}
 		
-		return new Response('URL Shortener API', { 
-		  headers: corsHeaders 
-		});
+		// 處理其他情況
+		return Response.redirect('https://url-shortener-279.pages.dev', 302);
 		
 	  } catch (err) {
 		return new Response(
