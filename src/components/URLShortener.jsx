@@ -10,39 +10,20 @@ const URLShortener = () => {
   const [error, setError] = useState('');
   const [isLoading, setIsLoading] = useState(false);
 
-  // URL 驗證函數
-  const isValidUrl = (url) => {
-    try {
-      const parsedUrl = new URL(url);
-      return ['http:', 'https:'].includes(parsedUrl.protocol);
-    } catch {
-      return false;
-    }
-  };
-
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError('');
     setShortUrl('');
     setIsLoading(true);
     
-    // 輸入驗證
     if (!originalUrl) {
       setError('請輸入網址');
       setIsLoading(false);
       return;
     }
 
-    if (!isValidUrl(originalUrl)) {
-      setError('請輸入有效的 HTTP 或 HTTPS 網址');
-      setIsLoading(false);
-      return;
-    }
-
     try {
-      console.log('發送的請求數據:', { url: originalUrl }); // 調試日誌
-
-      const response = await fetch('https://vvrl.cc', {
+      const response = await fetch('https://url-shortener-api.cming2ring.workers.dev', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
@@ -50,41 +31,15 @@ const URLShortener = () => {
         body: JSON.stringify({ url: originalUrl })
       });
 
-      console.log('響應狀態:', response.status); // 調試日誌
-
-      // 先檢查響應是否成功
-      if (!response.ok) {
-        const errorText = await response.text();
-        console.error('錯誤響應內容:', errorText);
-        throw new Error(errorText || '伺服器錯誤');
-      }
-
-      // 再嘗試解析 JSON
-      const responseText = await response.text();
-      console.log('原始響應內容:', responseText); // 調試日誌
-
-      let data;
-      try {
-        data = JSON.parse(responseText);
-      } catch (parseError) {
-        console.error('JSON解析錯誤:', parseError);
-        throw new Error('響應數據解析失敗');
-      }
-
-      console.log('解析後的數據:', data); // 調試日誌
+      const data = await response.json();
       
-      if (!data.success) {
-        throw new Error(data.error || '伺服器錯誤');
+      if (!response.ok) {
+        throw new Error(data.error || '發生錯誤，請稍後再試');
       }
 
       setShortUrl(data.shortUrl);
     } catch (err) {
-      console.error('完整錯誤:', err);
-      const errorMessage = err instanceof Error 
-        ? err.message 
-        : '無法連接到服務器，請稍後再試';
-      
-      setError(errorMessage);
+      setError(err.message);
     } finally {
       setIsLoading(false);
     }
@@ -94,7 +49,7 @@ const URLShortener = () => {
     try {
       await navigator.clipboard.writeText(shortUrl);
       alert('已複製到剪貼簿！');
-    } catch {
+    } catch (err) {
       alert('複製失敗，請手動複製');
     }
   };
@@ -103,20 +58,18 @@ const URLShortener = () => {
     <div className="h-screen w-full flex items-center justify-center bg-gray-100">
       <Card className="w-full max-w-md mx-4">
         <CardHeader>
-          <CardTitle className="text-center">網址縮短服務1</CardTitle>
+          <CardTitle className="text-center">網址縮短服務</CardTitle>
         </CardHeader>
         <CardContent>
           <form onSubmit={handleSubmit} className="space-y-4">
             <div>
               <Input
                 type="url"
-                placeholder="請輸入要縮短的網址 (須包含 http:// 或 https://)"
+                placeholder="請輸入要縮短的網址"
                 value={originalUrl}
-                onChange={(e) => setOriginalUrl(e.target.value.trim())}
+                onChange={(e) => setOriginalUrl(e.target.value)}
                 className="w-full"
                 disabled={isLoading}
-                required
-                pattern="https?://.*"
               />
             </div>
             <Button 
