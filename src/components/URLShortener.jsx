@@ -1,24 +1,39 @@
-import React, { useState } from 'react';
+import React, { useState, useCallback } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from "../components/ui/card";
 import { Input } from "../components/ui/input";
 import { Button } from "../components/ui/button";
 import { Alert, AlertDescription } from "../components/ui/alert";
+import { Toast } from "../components/ui/toast"; // 假設有這個元件
 
 const URLShortener = () => {
-  const [originalUrl, setOriginalUrl] = useState('');
-  const [shortUrl, setShortUrl] = useState('');
-  const [error, setError] = useState('');
-  const [isLoading, setIsLoading] = useState(false);
+  const [state, setState] = useState({
+    originalUrl: '',
+    shortUrl: '',
+    error: '',
+    isLoading: false,
+    showToast: false
+  });
 
-  const handleSubmit = async (e) => {
+  const validateUrl = (url) => {
+    try {
+      new URL(url);
+      return true;
+    } catch {
+      return false;
+    }
+  };
+
+  const handleSubmit = useCallback(async (e) => {
     e.preventDefault();
-    setError('');
-    setShortUrl('');
-    setIsLoading(true);
+    setState(prev => ({ ...prev, error: '', shortUrl: '', isLoading: true }));
     
-    if (!originalUrl) {
-      setError('請輸入網址');
-      setIsLoading(false);
+    if (!state.originalUrl) {
+      setState(prev => ({ ...prev, error: '請輸入網址', isLoading: false }));
+      return;
+    }
+
+    if (!validateUrl(state.originalUrl)) {
+      setState(prev => ({ ...prev, error: '請輸入有效的網址', isLoading: false }));
       return;
     }
 
@@ -28,7 +43,7 @@ const URLShortener = () => {
         headers: {
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ url: originalUrl })
+        body: JSON.stringify({ url: state.originalUrl })
       });
 
       const data = await response.json();
@@ -37,25 +52,26 @@ const URLShortener = () => {
         throw new Error(data.error || '發生錯誤，請稍後再試');
       }
 
-      setShortUrl(data.shortUrl);
+      setState(prev => ({ ...prev, shortUrl: data.shortUrl, isLoading: false }));
     } catch (err) {
-      setError(err.message);
-    } finally {
-      setIsLoading(false);
+      setState(prev => ({ ...prev, error: err.message, isLoading: false }));
     }
-  };
+  }, [state.originalUrl]);
 
-  const handleCopy = async () => {
+  const handleCopy = useCallback(async () => {
     try {
-      await navigator.clipboard.writeText(shortUrl);
-      alert('已複製到剪貼簿！');
+      await navigator.clipboard.writeText(state.shortUrl);
+      setState(prev => ({ ...prev, showToast: true }));
+      setTimeout(() => {
+        setState(prev => ({ ...prev, showToast: false }));
+      }, 3000);
     } catch (err) {
-      alert('複製失敗，請手動複製');
+      setState(prev => ({ ...prev, error: '複製失敗，請手動複製' }));
     }
-  };
+  }, [state.shortUrl]);
 
   return (
-    <div className="h-screen w-full flex items-center justify-center bg-gray-100">
+    <div className="min-h-screen w-full flex items-center justify-center bg-gray-100">
       <Card className="w-full max-w-md mx-4">
         <CardHeader>
           <CardTitle className="text-center">網址縮短服務</CardTitle>
@@ -66,37 +82,42 @@ const URLShortener = () => {
               <Input
                 type="url"
                 placeholder="請輸入要縮短的網址"
-                value={originalUrl}
-                onChange={(e) => setOriginalUrl(e.target.value)}
+                value={state.originalUrl}
+                onChange={(e) => setState(prev => ({ ...prev, originalUrl: e.target.value }))}
                 className="w-full"
-                disabled={isLoading}
+                disabled={state.isLoading}
               />
             </div>
             <Button 
               type="submit" 
               className="w-full bg-blue-600 hover:bg-blue-700 text-white"
-              disabled={isLoading}
+              disabled={state.isLoading}
             >
-              {isLoading ? '處理中...' : '縮短網址'}
+              {state.isLoading ? (
+                <div className="flex items-center">
+                  <span className="animate-spin mr-2">⟳</span>
+                  處理中...
+                </div>
+              ) : '縮短網址'}
             </Button>
             
-            {error && (
+            {state.error && (
               <Alert variant="destructive">
-                <AlertDescription>{error}</AlertDescription>
+                <AlertDescription>{state.error}</AlertDescription>
               </Alert>
             )}
             
-            {shortUrl && (
+            {state.shortUrl && (
               <div className="mt-4 p-4 bg-green-50 rounded-md">
                 <p className="text-sm font-medium text-green-800">縮短後的網址：</p>
                 <div className="flex items-center gap-2">
                   <a 
-                    href={shortUrl}
+                    href={state.shortUrl}
                     target="_blank"
                     rel="noopener noreferrer"
                     className="text-blue-600 hover:underline break-all"
                   >
-                    {shortUrl}
+                    {state.shortUrl}
                   </a>
                   <Button 
                     type="button"
@@ -111,6 +132,10 @@ const URLShortener = () => {
           </form>
         </CardContent>
       </Card>
+      
+      {state.showToast && (
+        <Toast>已複製到剪貼簿！</Toast>
+      )}
     </div>
   );
 };

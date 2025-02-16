@@ -31,8 +31,50 @@ export default {
 			);
 		  }
   
-		  const shortCode = Math.random().toString(36).substring(2, 8);
-		  await env.URL_STORE.put(shortCode, longUrl);
+		  // 驗證 URL 格式
+		  try {
+			new URL(longUrl);
+		  } catch {
+			return new Response(
+			  JSON.stringify({ error: '無效的 URL 格式' }), 
+			  {
+				status: 400,
+				headers: {
+				  'Content-Type': 'application/json',
+				  ...corsHeaders
+				}
+			  }
+			);
+		  }
+  
+		  // 使用更安全的短碼生成方法
+		  const generateShortCode = () => {
+			const chars = 'abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+			const length = 6;
+			return Array.from(crypto.getRandomValues(new Uint8Array(length)))
+			  .map(x => chars[x % chars.length])
+			  .join('');
+		  };
+  
+		  const shortCode = generateShortCode();
+		  
+		  // 檢查短碼是否已存在
+		  const existing = await env.URL_STORE.get(shortCode);
+		  if (existing) {
+			return new Response(
+			  JSON.stringify({ error: '請重試' }), 
+			  {
+				status: 409,
+				headers: {
+				  'Content-Type': 'application/json',
+				  ...corsHeaders
+				}
+			  }
+			);
+		  }
+  
+		  // 設定 URL 過期時間（例如 30 天）
+		  await env.URL_STORE.put(shortCode, longUrl, { expirationTtl: 2592000 });
 		  
 		  return new Response(
 			JSON.stringify({
@@ -56,14 +98,25 @@ export default {
 		  if (originalUrl) {
 			return Response.redirect(originalUrl, 302);
 		  }
+  
+		  // 找不到對應的短網址時返回自訂錯誤頁面
+		  return new Response(
+			'找不到對應的網址',
+			{ 
+			  status: 404,
+			  headers: {
+				'Content-Type': 'text/plain;charset=UTF-8',
+				...corsHeaders
+			  }
+			}
+		  );
 		}
   
-		// 讓其他請求通過到 Pages
 		return fetch(request);
   
 	  } catch (err) {
 		return new Response(
-		  JSON.stringify({ error: err.message }), 
+		  JSON.stringify({ error: '系統錯誤，請稍後再試' }), 
 		  { 
 			status: 500,
 			headers: {
