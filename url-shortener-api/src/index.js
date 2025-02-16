@@ -59,8 +59,11 @@ export default {
 		  }
 		}
   
-		// 如果不是短網址請求，放行給 Pages 處理
-		return Response.redirect(domain, 302);
+		// 如果不是短網址請求，直接返回 404，讓請求繼續到 Pages
+		return new Response(null, { 
+		  status: 404,
+		  headers: corsHeaders 
+		});
   
 	  } catch (err) {
 		return new Response(
