@@ -16,6 +16,17 @@ export default {
 		const url = new URL(request.url);
 		const domain = 'https://vvrl.cc';
 		
+		// GET 請求處理 - 放在最前面優先處理短網址重定向
+		if (request.method === 'GET' && url.pathname.length > 1) {
+		  const shortCode = url.pathname.slice(1);
+		  const originalUrl = await env.URL_STORE.get(shortCode);
+		  
+		  if (originalUrl) {
+			// 如果找到對應的原始網址，立即重定向
+			return Response.redirect(originalUrl, 302);
+		  }
+		}
+		
 		// POST 請求 - 建立短網址
 		if (request.method === 'POST') {
 		  const { url: longUrl } = await request.json();
@@ -50,28 +61,12 @@ export default {
 		  );
 		}
 		
-		// GET 請求處理
-		if (request.method === 'GET') {
-		  // 如果是根路徑，重定向到前端頁面
-		  if (url.pathname === '/') {
-			return Response.redirect('https://url-shortener-279.pages.dev', 302);
-		  }
-		  
-		  // 如果有短碼，嘗試重定向到原始 URL
-		  if (url.pathname.length > 1) {
-			const shortCode = url.pathname.slice(1);
-			const originalUrl = await env.URL_STORE.get(shortCode);
-			
-			if (!originalUrl) {
-			  return Response.redirect('https://url-shortener-279.pages.dev', 302);
-			}
-			
-			return Response.redirect(originalUrl, 302);
-		  }
-		}
-		
-		// 處理其他情況
-		return Response.redirect('https://url-shortener-279.pages.dev', 302);
+		// 對於任何其他請求，包括根路徑，不做任何處理
+		// 這樣 Pages 可以正常處理前端頁面
+		return new Response(null, {
+		  status: 404,
+		  headers: corsHeaders
+		});
 		
 	  } catch (err) {
 		return new Response(
