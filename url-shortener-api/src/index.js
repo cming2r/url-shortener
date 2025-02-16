@@ -13,8 +13,8 @@ export default {
 	  }
   
 	  try {
-		const url = new URL(request.url);
-		const domain = 'https://vvrl.cc'; // 更新為新的 domain
+		// 使用固定的域名，而不是request的origin
+		const domain = 'https://vvrl.cc';
 		
 		if (request.method === 'POST') {
 		  const { url: longUrl } = await request.json();
@@ -49,18 +49,22 @@ export default {
 		  );
 		}
 		
-		if (request.method === 'GET' && url.pathname.length > 1) {
-		  const shortCode = url.pathname.slice(1);
-		  const originalUrl = await env.URL_STORE.get(shortCode);
+		if (request.method === 'GET' && request.url.includes('/')) {
+		  const urlParts = request.url.split('/');
+		  const shortCode = urlParts[urlParts.length - 1];
 		  
-		  if (!originalUrl) {
-			return new Response('Short URL not found', { 
-			  status: 404,
-			  headers: corsHeaders 
-			});
+		  if (shortCode) {
+			const originalUrl = await env.URL_STORE.get(shortCode);
+			
+			if (!originalUrl) {
+			  return new Response('Short URL not found', { 
+				status: 404,
+				headers: corsHeaders 
+			  });
+			}
+			
+			return Response.redirect(originalUrl, 302);
 		  }
-		  
-		  return Response.redirect(originalUrl, 302);
 		}
 		
 		return new Response('URL Shortener API', { 

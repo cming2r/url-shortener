@@ -6,14 +6,11 @@
   "kv_namespaces": [
     {
       "binding": "URL_STORE",
-      "id": "您的KV命名空間ID"
+      "id": "eda34974057b45ec8e97db34f44e294e"
     }
   ],
   "routes": [
-    {
-      "pattern": "vvrl.cc/*",
-      "custom_domain": true
-    }
+    "vvrl.cc"
   ],
   "observability": {
     "enabled": true
